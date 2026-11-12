@@ -3,28 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Обо мне</title>
+  <title>Мои задачи</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; background-color: #f9f9f9; }
-    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-    ol { background: #fff; padding: 20px 40px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    li { margin-bottom: 10px; }
-    a { color: #3498db; text-decoration: none; font-weight: bold; }
-    a:hover { text-decoration: underline; }
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 12px; }
+    input, button { padding: 8px; margin: 4px 0; font-size: 15px; }
+    li { margin: 6px 0; }
+    #warning { display: none; background: #ffe5e5; color: #a00; padding: 10px; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <h1>О, это сайт обо мне! Я Алина.</h1>
-  
-  <p>Я очень многое умею, но вот три главных таланта:</p>
-  <ol>
-    <li>Спать до обеда.</li>
-    <li>Есть, даже если уже поела.</li>
-    <li>Ничего не делать и уставать.</li>
-  </ol>
-
-  <p>Пока всё. Пойду прилягу.</p>
-  
-  <p>Мой профиль на GitHub: <a href="https://github.com/lina09156" target="_blank">lina09156</a></p>
+  <h1>Мои задачи</h1>
+ 
+  <p id="warning">
+    Впишите свои Project URL и anon key в начало блока &lt;script&gt; в этом файле
+    (Supabase → Project Settings → API), сохраните файл и обновите страницу.
+  </p>
+ 
+  <div id="auth">
+    <input id="email" type="email" placeholder="Почта">
+    <input id="password" type="password" placeholder="Пароль (от 6 символов)">
+    <button onclick="signUp()">Регистрация</button>
+    <button onclick="signIn()">Войти</button>
+  </div>
+ 
+  <div id="app" style="display:none">
+    <p>Вы вошли как <span id="who"></span> <button onclick="signOut()">Выйти</button></p>
+    <input id="task" placeholder="Новая задача">
+    <button onclick="addTask()">Добавить</button>
+    <ul id="list"></ul>
+ 
+    <hr>
+    <button onclick="loadStats()">Статистика</button>
+    <p id="stats"></p>
+ 
+    <input id="echoText" placeholder="Что отправить на сервер">
+    <button onclick="sendEcho()">Отправить</button>
+    <p id="echoResult"></p>
+  </div>
+ 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ТВОИ ДАННЫЕ SUPABASE
+    const SUPABASE_URL = "https://nedwvthcrdalnljuxqxn.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_g6gSs011FB_CxED2C-ZYWA_3T7KTmNC";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+ 
+    // Подсказка, если ключи ещё не вписаны
+    if (SUPABASE_URL.includes("ВАШ-ПРОЕКТ") || SUPABASE_KEY.includes("ВАШ-")) {
+      document.getElementById("warning").style.display = "block";
+    }
+ 
+    async function signUp() {
+      const { error } = await db.auth.signUp({
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+      });
+      alert(error ? "Ошибка: " + error.message : "Готово, теперь войдите");
+    }
+ 
+    async function signIn() {
+      const { error } = await db.auth.signInWithPassword({
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+      });
+      if (error) { alert("Ошибка: " + error.message); return; }
+      showApp();
+    }
+ 
+    async function signOut() {
+      await db.auth.signOut();
+      location.reload();
+    }
+ 
+    async function showApp() {
+      const { data: { user } } = await db.auth.getUser();
+      if (!user) return;
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      document.getElementById("who").textContent = user.email;
+      loadTasks();
+    }
+ 
+    async function loadTasks() {
+      const { data, error } = await db.from("tasks").select("*").order("id");
+      if (error) { alert(error.message); return; }
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+      for (const t of data) {
+        const li = document.createElement("li");
+        li.textContent = t.title + " ";
+        const btn = document.createElement("button");
+        btn.textContent = "×";
+        btn.onclick = () => deleteTask(t.id);
+        li.appendChild(btn);
+        list.appendChild(li);
+      }
+    }
+ 
+    async function addTask() {
+      const title = document.getElementById("task").value.trim();
+      if (!title) return;
+      const { data: { user } } = await db.auth.getUser();
+      const { error } = await db.from("tasks").insert({ title, user_id: user.id });
+      if (error) { alert(error.message); return; }
+      document.getElementById("task").value = "";
+      loadTasks();
+    }
+ 
+    async function deleteTask(id) {
+      await db.from("tasks").delete().eq("id", id);
+      loadTasks();
+    }
+ 
+    // ТВОЙ АДРЕС БЭКЕНДА НА AMVERA (без слеша в конце)
+    const BACKEND_URL = "https://backend-alina09156.msk1.amvera.tech";
+ 
+    async function loadStats() {
+      document.getElementById("stats").textContent = "Считаем...";
+      const response = await fetch(BACKEND_URL + "/stats");
+      const data = await response.json();
+      document.getElementById("stats").textContent = "Всего задач в базе: " + data.total_tasks;
+    }
+ 
+    async function sendEcho() {
+      const text = document.getElementById("echoText").value;
+      const response = await fetch(BACKEND_URL + "/echo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text }),
+      });
+      const data = await response.json();
+      document.getElementById("echoResult").textContent = JSON.stringify(data);
+    }
+ 
+    showApp(); // если уже входили раньше — сразу показываем задачи
+  </script>
 </body>
 </html>
