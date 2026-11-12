@@ -9,6 +9,7 @@
     input, button { padding: 8px; margin: 4px 0; font-size: 15px; }
     li { margin: 6px 0; }
     #warning { display: none; background: #ffe5e5; color: #a00; padding: 10px; border-radius: 6px; }
+    hr { margin: 20px 0; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
@@ -31,14 +32,25 @@
     <input id="task" placeholder="Новая задача">
     <button onclick="addTask()">Добавить</button>
     <ul id="list"></ul>
+ 
+    <hr>
+    <button onclick="loadStats()">Статистика</button>
+    <p id="stats"></p>
+ 
+    <input id="echoText" placeholder="Что отправить на сервер">
+    <button onclick="sendEcho()">Отправить</button>
+    <p id="echoResult"></p>
   </div>
  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Эти два значения берём в Supabase: Project Settings → API
+    // ТВОИ ДАННЫЕ SUPABASE
     const SUPABASE_URL = "https://nedwvthcrdalnljuxqxn.supabase.co";
     const SUPABASE_KEY = "sb_publishable_g6gSs011FB_CxED2C-ZYWA_3T7KTmNC";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+ 
+    // ТВОЙ АДРЕС БЭКЕНДА НА AMVERA (без слеша в конце)
+    const BACKEND_URL = "https://backend-alina09156.msk1.amvera.tech";
  
     // Подсказка, если ключи ещё не вписаны
     if (SUPABASE_URL.includes("ВАШ-ПРОЕКТ") || SUPABASE_KEY.includes("ВАШ-")) {
@@ -127,6 +139,30 @@
     async function deleteTask(id) {
       await db.from("tasks").delete().eq("id", id);
       loadTasks();
+    }
+
+    // Функция для статистики (запрос к Amvera)
+    async function loadStats() {
+      document.getElementById("stats").textContent = "Считаем...";
+      try {
+        const response = await fetch(BACKEND_URL + "/stats");
+        const data = await response.json();
+        document.getElementById("stats").textContent = "Всего задач в базе: " + data.total_tasks;
+      } catch (e) {
+        document.getElementById("stats").textContent = "Ошибка: сервер недоступен";
+      }
+    }
+
+    // Функция для проверки отправки данных (echo)
+    async function sendEcho() {
+      const text = document.getElementById("echoText").value;
+      const response = await fetch(BACKEND_URL + "/echo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text }),
+      });
+      const data = await response.json();
+      document.getElementById("echoResult").textContent = JSON.stringify(data);
     }
  
     showApp(); // если уже входили раньше — сразу показываем задачи
