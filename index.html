@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -31,19 +31,11 @@
     <input id="task" placeholder="Новая задача">
     <button onclick="addTask()">Добавить</button>
     <ul id="list"></ul>
- 
-    <hr>
-    <button onclick="loadStats()">Статистика</button>
-    <p id="stats"></p>
- 
-    <input id="echoText" placeholder="Что отправить на сервер">
-    <button onclick="sendEcho()">Отправить</button>
-    <p id="echoResult"></p>
   </div>
  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ТВОИ ДАННЫЕ SUPABASE
+    // Эти два значения берём в Supabase: Project Settings → API
     const SUPABASE_URL = "https://nedwvthcrdalnljuxqxn.supabase.co";
     const SUPABASE_KEY = "sb_publishable_g6gSs011FB_CxED2C-ZYWA_3T7KTmNC";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -92,10 +84,26 @@
       for (const t of data) {
         const li = document.createElement("li");
         li.textContent = t.title + " ";
+        
+        // Зачеркиваем, если задача сделана
+        if (t.done) {
+          li.style.textDecoration = "line-through";
+        }
+
+        // Кнопка "Сделано"
+        if (!t.done) {
+          const btnDone = document.createElement("button");
+          btnDone.textContent = "Сделано";
+          btnDone.onclick = () => markDone(t.id);
+          li.appendChild(btnDone);
+        }
+
+        // Кнопка удаления
         const btn = document.createElement("button");
         btn.textContent = "×";
         btn.onclick = () => deleteTask(t.id);
         li.appendChild(btn);
+
         list.appendChild(li);
       }
     }
@@ -109,31 +117,16 @@
       document.getElementById("task").value = "";
       loadTasks();
     }
+
+    // Функция "Сделано"
+    async function markDone(id) {
+      await db.from("tasks").update({ done: true }).eq("id", id);
+      loadTasks();
+    }
  
     async function deleteTask(id) {
       await db.from("tasks").delete().eq("id", id);
       loadTasks();
-    }
- 
-    // ТВОЙ АДРЕС БЭКЕНДА НА AMVERA (без слеша в конце)
-    const BACKEND_URL = "https://backend-alina09156.msk1.amvera.tech";
- 
-    async function loadStats() {
-      document.getElementById("stats").textContent = "Считаем...";
-      const response = await fetch(BACKEND_URL + "/stats");
-      const data = await response.json();
-      document.getElementById("stats").textContent = "Всего задач в базе: " + data.total_tasks;
-    }
- 
-    async function sendEcho() {
-      const text = document.getElementById("echoText").value;
-      const response = await fetch(BACKEND_URL + "/echo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text }),
-      });
-      const data = await response.json();
-      document.getElementById("echoResult").textContent = JSON.stringify(data);
     }
  
     showApp(); // если уже входили раньше — сразу показываем задачи
