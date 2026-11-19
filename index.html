@@ -10,9 +10,18 @@
     li { margin: 6px 0; }
     #warning { display: none; background: #ffe5e5; color: #a00; padding: 10px; border-radius: 6px; }
     hr { margin: 20px 0; border: 1px solid #ccc; }
+    .images-container { display: flex; gap: 15px; margin-bottom: 20px; justify-content: center; }
+    .images-container img { border-radius: 8px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
+  
+  <!-- Картинки из Supabase Storage -->
+  <div class="images-container">
+    <img src="https://nedwvthcrdalnljuxqxn.supabase.co/storage/v1/object/public/images/dog.jpg" alt="Собачка" width="120">
+    <img src="https://nedwvthcrdalnljuxqxn.supabase.co/storage/v1/object/public/images/cat.jpg" alt="Котенок" width="120">
+  </div>
+
   <h1>Мои задачи</h1>
  
   <p id="warning">
@@ -49,10 +58,8 @@
     const SUPABASE_KEY = "sb_publishable_g6gSs011FB_CxED2C-ZYWA_3T7KTmNC";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  
-    // ТВОЙ АДРЕС БЭКЕНДА НА AMVERA (без слеша в конце)
     const BACKEND_URL = "https://backend-alina09156.msk1.amvera.tech";
  
-    // Подсказка, если ключи ещё не вписаны
     if (SUPABASE_URL.includes("ВАШ-ПРОЕКТ") || SUPABASE_KEY.includes("ВАШ-")) {
       document.getElementById("warning").style.display = "block";
     }
@@ -96,26 +103,17 @@
       for (const t of data) {
         const li = document.createElement("li");
         li.textContent = t.title + " ";
-        
-        // Зачеркиваем, если задача сделана
-        if (t.done) {
-          li.style.textDecoration = "line-through";
-        }
-
-        // Кнопка "Сделано"
+        if (t.done) { li.style.textDecoration = "line-through"; }
         if (!t.done) {
           const btnDone = document.createElement("button");
           btnDone.textContent = "Сделано";
           btnDone.onclick = () => markDone(t.id);
           li.appendChild(btnDone);
         }
-
-        // Кнопка удаления
         const btn = document.createElement("button");
         btn.textContent = "×";
         btn.onclick = () => deleteTask(t.id);
         li.appendChild(btn);
-
         list.appendChild(li);
       }
     }
@@ -129,8 +127,7 @@
       document.getElementById("task").value = "";
       loadTasks();
     }
-
-    // Функция "Сделано"
+ 
     async function markDone(id) {
       await db.from("tasks").update({ done: true }).eq("id", id);
       loadTasks();
@@ -140,8 +137,7 @@
       await db.from("tasks").delete().eq("id", id);
       loadTasks();
     }
-
-    // Функция для статистики (запрос к Amvera)
+ 
     async function loadStats() {
       document.getElementById("stats").textContent = "Считаем...";
       try {
@@ -152,8 +148,7 @@
         document.getElementById("stats").textContent = "Ошибка: сервер недоступен";
       }
     }
-
-    // Функция для проверки отправки данных (echo)
+ 
     async function sendEcho() {
       const text = document.getElementById("echoText").value;
       const response = await fetch(BACKEND_URL + "/echo", {
@@ -165,7 +160,7 @@
       document.getElementById("echoResult").textContent = JSON.stringify(data);
     }
  
-    showApp(); // если уже входили раньше — сразу показываем задачи
+    showApp();
   </script>
 </body>
 </html>
